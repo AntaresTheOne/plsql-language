@@ -21,12 +21,24 @@ export interface PLSQLConnection {
 }
 
 /**
- * Settings for plsql.
+ * Settings for plsql. 
  */
 export class PLSQLSettings {
 
+    // Default target languages for Oracle SQL Developer Extension compatibility
+    private static readonly DEFAULT_TARGET_LANGUAGES = ['plsql', 'oraclesql', 'sql'];
+
     // constructor() {
     // }
+
+    /**
+     * Get target languages for which to activate PL/SQL features.
+     * This allows the extension to work alongside Oracle SQL Developer Extension. 
+     */
+    public static getTargetLanguages(): string[] {
+        const config = vscode.workspace.getConfiguration('plsql-language');
+        return config. get<string[]>('targetLanguages') || this.DEFAULT_TARGET_LANGUAGES;
+    }
 
     /**
      * SearchPaths:
@@ -37,18 +49,18 @@ export class PLSQLSettings {
      * Array => ['D:/Path', ${workspaceFolder}]
      */
     public static getSearchInfos(file: vscode.Uri) {
-        // ignore search.exclude settings
+        // ignore search. exclude settings
         let   ignore;
         const searchExclude = <object>vscode.workspace.getConfiguration('search', file).get('exclude');
         if (searchExclude) {
-            ignore = Object.keys(searchExclude).filter(key => searchExclude[key]);
+            ignore = Object.keys(searchExclude). filter(key => searchExclude[key]);
         }
 
         const config = vscode.workspace.getConfiguration('plsql-language');
 
         let searchFld = <string|Array<string>>config.get('searchPaths');
         if (searchFld) {
-            if (!Array.isArray(searchFld))
+            if (! Array.isArray(searchFld))
                 searchFld = [searchFld];
 
             searchFld = searchFld.map(folder => {
@@ -56,27 +68,27 @@ export class PLSQLSettings {
                 // ${workspaceFolder} => current workspace
                 // ${workspaceFolder: name} => workspace find by name
                 // ${workspaceFolder: index} => workspace find by index
-                const match = folder.match(/\${workspaceFolder(?:\s*:\s*(.*))?}/i);
+                const match = folder.match(/\${workspaceFolder(? :\s*:\s*(.*))?}/i);
                 if (match) {
                     if (vscode.workspace.workspaceFolders && match && match.index === 0) {
                         const wsId = match[1];
                         if (wsId) {
-                            const find = vscode.workspace.workspaceFolders.find(ws =>
-                                Number.isInteger(<any>wsId - 1) ? ws.index === Number.parseInt(wsId, 10) : ws.name === wsId);
+                            const find = vscode.workspace.workspaceFolders. find(ws =>
+                                Number. isInteger(<any>wsId - 1) ?  ws.index === Number. parseInt(wsId, 10) : ws.name === wsId);
                             if (find)
                                 return folder.replace(match[0], find.uri.fsPath);
                         } else {
-                            const wsFolder = vscode.workspace.getWorkspaceFolder(file);
+                            const wsFolder = vscode. workspace.getWorkspaceFolder(file);
                             if (wsFolder)
-                                return folder.replace('${workspaceFolder}', wsFolder.uri.fsPath);
+                                return folder. replace('${workspaceFolder}', wsFolder. uri.fsPath);
                         }
                     }
                     return '';
                 };
                 return folder;
-            }).filter(folder => folder !== '');
+            }). filter(folder => folder !== '');
         } else if (vscode.workspace.workspaceFolders) // search in all workspaces
-            searchFld = vscode.workspace.workspaceFolders.map(ws => ws.uri.fsPath);
+            searchFld = vscode.workspace.workspaceFolders.map(ws => ws.uri. fsPath);
         else
             searchFld = [''];
 
@@ -85,7 +97,7 @@ export class PLSQLSettings {
 
 
     public static translatePackageName(packageName: string): string {
-        const config = vscode.workspace.getConfiguration('plsql-language');
+        const config = vscode. workspace.getConfiguration('plsql-language');
 
         // packageName using synonym => real packageName
         let   name = packageName;
@@ -98,12 +110,12 @@ export class PLSQLSettings {
     }
 
     public static getCommentInSymbols(): boolean {
-        const config = vscode.workspace.getConfiguration('plsql-language');
+        const config = vscode. workspace.getConfiguration('plsql-language');
         return <boolean>config.get('commentInSymbols');
     }
 
     public static getHoverEnable(): boolean {
-        const config = vscode.workspace.getConfiguration('plsql-language');
+        const config = vscode. workspace.getConfiguration('plsql-language');
         return <boolean>config.get('hover.enable');
     }
     public static getSignatureEnable(): boolean {
@@ -112,32 +124,42 @@ export class PLSQLSettings {
     }
     public static getOracleConnectionEnable(): boolean {
         const config = vscode.workspace.getConfiguration('plsql-language');
-        return <boolean>config.get('oracleConnection.enable');
+        return <boolean>config. get('oracleConnection.enable');
     }
 
     public static getSearchExt(searchExt: string[]) {
 
-        // copy of package.json
+        // copy of package.json (removed 'sql' to avoid conflict with Oracle SQL Developer Extension)
         const DEFAULT_EXT =
-             ['sql','ddl','dml','pkh','pks','pkb','pck','pls','plb',
+             ['ddl','dml','pkh','pks','pkb','pck','pls','plb',
               'bdy','fnc','idx','mv','prc','prg','sch','seq','spc','syn','tab','tbl','tbp','tps','trg','typ','vw'];
 
-        let allExt = [...new Set([...searchExt, ...DEFAULT_EXT])]; // (merge and remove duplicate)
+        let allExt = [... new Set([...searchExt, ...DEFAULT_EXT])]; // (merge and remove duplicate)
 
         const config = vscode.workspace.getConfiguration('files', null),
               assoc = <object>config.get('associations');
 
         if (assoc) {
-            const assocExt = [], otherExt = [];
-            Object.keys(assoc).forEach(key =>
-                (assoc[key] === 'plsql' ? assocExt : otherExt).push(key.replace(/^\*./,'').toLowerCase())
-            );
+            const targetLanguages = this.getTargetLanguages();
+            const assocExt: string[] = [];
+            const otherExt: string[] = [];
+            
+            Object.keys(assoc).forEach(key => {
+                const lang = assoc[key];
+                // Check if the file association is for any of our target languages
+                if (targetLanguages. includes(lang)) {
+                    assocExt.push(key. replace(/^\*./,''). toLowerCase());
+                } else {
+                    otherExt.push(key.replace(/^\*./,''). toLowerCase());
+                }
+            });
+            
             // Remove ext associated with another language
             if (otherExt.length)
-                allExt = allExt.filter(item => otherExt.indexOf(item) === -1);
-            // Add ext associated with plsql (remove duplicate)
+                allExt = allExt. filter(item => otherExt.indexOf(item) === -1);
+            // Add ext associated with target languages (remove duplicate)
             if (assocExt.length)
-                allExt = [...new Set([...allExt, ...assocExt])];
+                allExt = [... new Set([...allExt, ...assocExt])];
         }
 
         return allExt;
@@ -148,13 +170,13 @@ export class PLSQLSettings {
               enable = <boolean>config.get('pldoc.enable'),
               author = <string>config.get('pldoc.author');
 
-        let location = <string>config.get('pldoc.path');
+        let location = <string>config.get('pldoc. path');
         if (!location)
             location = path.join(__dirname, '../../../snippets/pldoc.json');
         else {
-            // const wsFolder = vscode.workspace.getWorkspaceFolder(file);
+            // const wsFolder = vscode. workspace.getWorkspaceFolder(file);
             // temporary code to resolve bug https://github.com/Microsoft/vscode/issues/36221
-            const wsFolder = vscode.workspace.getWorkspaceFolder(vscode.Uri.file(file.fsPath));
+            const wsFolder = vscode.workspace.getWorkspaceFolder(vscode.Uri.file(file. fsPath));
             const cwd =  wsFolder ? wsFolder.uri.fsPath : '';
             location = location.replace('${workspaceRoot}', cwd); // deprecated
             location = location.replace('${workspaceFolder}', cwd);
@@ -164,16 +186,16 @@ export class PLSQLSettings {
         return {enable, author, location};
     }
 
-    public static getCompletionPath(wsFolder: vscode.Uri): string {
-        const config = vscode.workspace.getConfiguration('plsql-language');
+    public static getCompletionPath(wsFolder: vscode. Uri): string {
+        const config = vscode. workspace.getConfiguration('plsql-language');
 
-        let location = <string>config.get('completion.path');
+        let location = <string>config.get('completion. path');
         if (location) {
             const cwd =  wsFolder ? wsFolder.fsPath : '';
             // location = location.replace('${workspaceRoot}', cwd); // deprecated
             location = location.replace('${workspaceFolder}', cwd);
             if (location)
-                location = path.join(location, 'plsql.completion.json');
+                location = path.join(location, 'plsql.completion. json');
         }
 
         return location;
@@ -181,7 +203,7 @@ export class PLSQLSettings {
 
     // global config
     public static getConnections(): PLSQLConnection[] {
-        const config = vscode.workspace.getConfiguration('plsql-language');
+        const config = vscode. workspace.getConfiguration('plsql-language');
         return <PLSQLConnection[]>config.get('connections');
     }
 
@@ -193,7 +215,7 @@ export class PLSQLSettings {
         };
     }
 
-    public static getEncoding(file: vscode.Uri) {
+    public static getEncoding(file: vscode. Uri) {
         const config = vscode.workspace.getConfiguration('files', file);
         return config.get('encoding', 'utf8');
     }

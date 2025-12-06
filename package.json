@@ -2,7 +2,7 @@
     "name": "plsql-language",
     "displayName": "Language PL/SQL",
     "description": "PL/SQL language (Oracle) support",
-    "version": "1.8.2",
+    "version": "1.8.3",
     "publisher": "xyz",
     "engines": {
         "vscode": "^1.32.3"
@@ -10,12 +10,12 @@
     "homepage": "https://github.com/zabel-xyz/plsql-language",
     "repository": {
         "type": "git",
-        "url": "https://github.com/zabel-xyz/plsql-language.git"
+        "url": "https://github. com/zabel-xyz/plsql-language. git"
     },
     "bugs": {
         "url": "https://github.com/zabel-xyz/plsql-language/issues"
     },
-    "icon": "images/plsql-language.png",
+    "icon": "images/plsql-language. png",
     "categories": [
         "Programming Languages"
     ],
@@ -26,9 +26,11 @@
     ],
     "activationEvents": [
         "onLanguage:plsql",
+        "onLanguage:oraclesql",
+        "onLanguage:sql",
         "onCommand:plsql.activateConnection",
         "onCommand:plsql.executeCommand",
-        "onCommand:plsql.createConnection",
+        "onCommand:plsql. createConnection",
         "onCommand:plsql.removeConnection"
     ],
     "main": "./main/out/src/extension",
@@ -42,33 +44,32 @@
                     "plsql"
                 ],
                 "extensions": [
-                    ".sql",
                     ".ddl",
-                    ".dml",
+                    ". dml",
                     ".pkh",
                     ".pks",
                     ".pkb",
                     ".pck",
-                    ".pls",
-                    ".plb",
+                    ". pls",
+                    ". plb",
 
                     ".bdy",
                     ".fnc",
                     ".idx",
-                    ".mv",
-                    ".prc",
-                    ".prg",
-                    ".sch",
-                    ".seq",
-                    ".spc",
-                    ".syn",
-                    ".tab",
-                    ".tbl",
-                    ".tbp",
-                    ".tps",
-                    ".trg",
-                    ".typ",
-                    ".vw"
+                    ". mv",
+                    ". prc",
+                    ". prg",
+                    ". sch",
+                    ". seq",
+                    ". spc",
+                    ". syn",
+                    ". tab",
+                    ". tbl",
+                    ". tbp",
+                    ". tps",
+                    ". trg",
+                    ". typ",
+                    ". vw"
                 ],
                 "configuration": "./syntaxes/plsql.configuration.json"
             }
@@ -76,23 +77,31 @@
         "grammars": [
             {
                 "language": "plsql",
-                "scopeName": "source.plsql.oracle",
-                "path": "./syntaxes/plsql.tmLanguage"
+                "scopeName": "source. plsql. oracle",
+                "path": "./syntaxes/plsql. tmLanguage"
             }
         ],
         "configuration": {
             "type": "object",
             "title": "PL/SQL configuration",
             "properties": {
+                "plsql-language.targetLanguages": {
+                    "type": "array",
+                    "default": ["plsql", "oraclesql", "sql"],
+                    "items": {
+                        "type": "string"
+                    },
+                    "markdownDescription": "Language IDs for which to activate PL/SQL features (Go to Definition, Symbols, Completion, etc.).  Default includes `plsql`, `oraclesql` (Oracle SQL Developer Extension), and `sql`.  This allows the extension to work alongside Oracle SQL Developer Extension for VSCode."
+                },
                 "plsql-language.searchPaths": {
                     "type": ["string", "array", "null"],
                     "default": null,
-                    "markdownDescription": "Paths to search plsql files (default is to search in all workspaces) [read more](https://github.com/zabel-xyz/plsql-language/blob/master/README.md#define-search-paths)"
+                    "markdownDescription": "Paths to search plsql files (default is to search in all workspaces) [read more](https://github. com/zabel-xyz/plsql-language/blob/master/README.md#define-search-paths)"
                 },
                 "plsql-language.synonym": {
                     "type": "object",
                     "properties": {
-                        "plsql-language.replace": {
+                        "plsql-language. replace": {
                             "type": "string",
                             "default": null
                         },
@@ -101,14 +110,14 @@
                             "default": null
                         }
                     },
-                    "description": "Usage of synonmy for package name. To replace synonym by real package name when navigate. ('replace' could be a regular expression)"
+                    "description": "Usage of synonmy for package name.  To replace synonym by real package name when navigate.  ('replace' could be a regular expression)"
                 },
                 "plsql-language.commentInSymbols": {
                     "type": "boolean",
                     "default": false,
                     "description": "Use comments between symbol and name (e.g. create or replace package /** **/ name)"
                 },
-                "plsql-language.snippets.enable": {
+                "plsql-language. snippets. enable": {
                     "type": "boolean",
                     "default": true,
                     "description": "Enable snippets"
@@ -123,10 +132,10 @@
                     "default": true,
                     "description": "Enable signature help feature"
                 },
-                "plsql-language.completion.path": {
+                "plsql-language.completion. path": {
                     "type": "string",
                     "default": null,
-                    "description": "Specify the folder location where to find plsql.completion.json (null: no custom completion)"
+                    "description": "Specify the folder location where to find plsql.completion. json (null: no custom completion)"
                 },
                 "plsql-language.pldoc.enable": {
                     "type": "boolean",
@@ -229,7 +238,7 @@
         },
         "commands": [
             {
-                "command": "plsql.activateConnection",
+                "command": "plsql. activateConnection",
                 "title": "PLSQL - Activate connection"
             },{
                 "command": "plsql.runQuery",
@@ -263,18 +272,18 @@
             "editor/context": [
                 {
                     "command": "plsql.runQuery",
-                    "when": "resourceLangId == plsql && config.plsql-language.oracleConnection.enable"
+                    "when": "(resourceLangId == plsql || resourceLangId == oraclesql || resourceLangId == sql) && config.plsql-language.oracleConnection.enable"
                 }
             ]
         },
         "keybindings": {
-            "command": "plsql.runQuery",
-            "when": "resourceLangId == plsql && config.plsql-language.oracleConnection.enable && editorTextFocus",
+            "command": "plsql. runQuery",
+            "when": "(resourceLangId == plsql || resourceLangId == oraclesql || resourceLangId == sql) && config.plsql-language. oracleConnection. enable && editorTextFocus",
             "key": "ctrl+enter"
         }
     },
     "scripts": {
-        "vscode:prepublish": "cd main && npm run update-vscode && cd .. && npm run compile",
+        "vscode:prepublish": "cd main && npm run update-vscode && cd ..  && npm run compile",
         "compile:main": "tsc -p ./main/tsconfig.json",
         "compile:server-oracle": "tsc -p ./server-oracle/tsconfig.json",
         "compile": "npm run compile:main && npm run compile:server-oracle",
@@ -283,7 +292,7 @@
     },
     "devDependencies": {
         "typescript": "3.4.1",
-        "vscode": "1.1.33",
+        "vscode": "1. 1.33",
         "mocha": "6.0.2",
         "@types/node": "11.12.2",
         "@types/mocha": "5.2.6"

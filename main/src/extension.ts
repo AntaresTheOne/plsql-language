@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 
-import { PLSQLDefinitionProvider } from './provider/plsqlDefinition.provider';
-import { PLSQLDocumentSymbolProvider } from './provider/plsqlDocumentSymbol.provider';
+import { PLSQLDefinitionProvider } from './provider/plsqlDefinition. provider';
+import { PLSQLDocumentSymbolProvider } from './provider/plsqlDocumentSymbol. provider';
 import { PLSQLCompletionItemProvider } from './provider/plsqlCompletionItem.provider';
 import { PLSQLHoverProvider } from './provider/plsqlHover.provider';
 import { PLSQLSignatureProvider } from './provider/plsqlSignature.provider';
@@ -16,13 +16,28 @@ import { OracleService } from './client-oracle/oracle.server';
 
 export function activate(context: vscode.ExtensionContext) {
 
-    // Default without $# redefinded here
+    // Get target languages from settings (supports Oracle SQL Developer Extension compatibility)
+    const targetLanguages = PLSQLSettings.getTargetLanguages();
+    
+    // Create document selector for all target languages
+    const languageSelector: vscode.DocumentSelector = targetLanguages.map(lang => ({ 
+        language: lang, 
+        scheme: 'file' 
+    }));
+
+    // Set language configuration for all target languages
+    // Default without $# redefined here
     // because plsql.configuration.json don't work with getWordRangeAtPosition() according to issue #42649
-    vscode.languages.setLanguageConfiguration('plsql', {
+    const wordPatternConfig: vscode. LanguageConfiguration = {
         wordPattern: /(-?\d*\.\d\w*)|([^\`\~\!\@\%\^\&\*\(\)\-\=\+\[\{\]\}\|\;\:\'\"\,\.\<\>\/\?\s]+)/
+    };
+    
+    targetLanguages.forEach(lang => {
+        vscode.languages.setLanguageConfiguration(lang, wordPatternConfig);
     });
 
-    let hoverProvider, signatureHelpProvider;
+    let hoverProvider: PLSQLHoverProvider | undefined;
+    let signatureHelpProvider: PLSQLSignatureProvider | undefined;
 
     // language providers
     activateHover();
@@ -31,15 +46,22 @@ export function activate(context: vscode.ExtensionContext) {
     // Oracle connection
     activateOracleConnection();
 
-    context.subscriptions.push(vscode.languages.registerCompletionItemProvider('plsql', new PLSQLCompletionItemProvider(), '.', '\"'));
-    context.subscriptions.push(vscode.languages.registerDefinitionProvider('plsql', new PLSQLDefinitionProvider()));
+    // Register providers for all target languages (plsql, oraclesql, sql, etc.)
+    context.subscriptions.push(
+        vscode.languages.registerCompletionItemProvider(languageSelector, new PLSQLCompletionItemProvider(), '.', '\"')
+    );
+    context.subscriptions.push(
+        vscode.languages.registerDefinitionProvider(languageSelector, new PLSQLDefinitionProvider())
+    );
 
-    // context.subscriptions.push(vscode.languages.registerReferenceProvider('plsql', new PLSQLReferenceProvider()));
-    // context.subscriptions.push(vscode.languages.registerDocumentFormattingEditProvider('plsql', new PLSQLDocumentFormattingEditProvider()));
-    context.subscriptions.push(vscode.languages.registerDocumentSymbolProvider('plsql', new PLSQLDocumentSymbolProvider()));
-    // context.subscriptions.push(vscode.languages.registerWorkspaceSymbolProvider(new PLSQLWorkspaceSymbolProvider()));
-    // context.subscriptions.push(vscode.languages.registerRenameProvider('plsql', new PLSQLRenameProvider()));
-    // context.subscriptions.push(vscode.languages.registerCodeActionsProvider('plsql', new PLSQLCodeActionProvider()));
+    // context.subscriptions.push(vscode.languages.registerReferenceProvider(languageSelector, new PLSQLReferenceProvider()));
+    // context.subscriptions. push(vscode. languages.registerDocumentFormattingEditProvider(languageSelector, new PLSQLDocumentFormattingEditProvider()));
+    context.subscriptions.push(
+        vscode.languages.registerDocumentSymbolProvider(languageSelector, new PLSQLDocumentSymbolProvider())
+    );
+    // context.subscriptions. push(vscode. languages.registerWorkspaceSymbolProvider(new PLSQLWorkspaceSymbolProvider()));
+    // context.subscriptions. push(vscode. languages.registerRenameProvider(languageSelector, new PLSQLRenameProvider()));
+    // context.subscriptions. push(vscode. languages.registerCodeActionsProvider(languageSelector, new PLSQLCodeActionProvider()));
 
     // Connection
     const connectController = new ConnectController();
@@ -50,19 +72,19 @@ export function activate(context: vscode.ExtensionContext) {
 
     // Query
     const queryController = new QueryController(context, connectController);
-    context.subscriptions.push(vscode.commands.registerCommand('plsql.executeCommand',
+    context.subscriptions. push(vscode. commands.registerCommand('plsql.executeCommand',
         queryController.executeCommand, queryController));
-    context.subscriptions.push(vscode.commands.registerCommand('plsql.createConnection',
+    context.subscriptions.push(vscode.commands.registerCommand('plsql. createConnection',
         queryController.createConnection, queryController));
-    context.subscriptions.push(vscode.commands.registerCommand('plsql.removeConnection',
+    context.subscriptions.push(vscode.commands.registerCommand('plsql. removeConnection',
         queryController.removeConnection, queryController));
-    // context.subscriptions.push(vscode.commands.registerTextEditorCommand('plsql.runScript',
+    // context.subscriptions. push(vscode. commands.registerTextEditorCommand('plsql.runScript',
     //     queryController.runScript, queryController));
     context.subscriptions.push(vscode.commands.registerTextEditorCommand('plsql.runQuery',
         queryController.runQuery, queryController));
 
     vscode.workspace.onDidChangeConfiguration(configChangedEvent => {
-        if (!configChangedEvent.affectsConfiguration('plsql-language'))
+        if (! configChangedEvent. affectsConfiguration('plsql-language'))
             return;
 
         connectController.configurationChanged();
@@ -71,16 +93,19 @@ export function activate(context: vscode.ExtensionContext) {
             activateSignatureHelp();
         if (configChangedEvent.affectsConfiguration('plsql-language.hover'))
             activateHover();
-        if (configChangedEvent.affectsConfiguration('plsql-language.oracleConnection.enable'))
+        if (configChangedEvent.affectsConfiguration('plsql-language.oracleConnection. enable'))
             activateOracleConnection();
     });
 
     function activateHover() {
         const enable = PLSQLSettings.getHoverEnable();
 
-        if (!hoverProvider && enable) {
+        if (! hoverProvider && enable) {
             hoverProvider = new PLSQLHoverProvider();
-            context.subscriptions.push(vscode.languages.registerHoverProvider('plsql', hoverProvider));
+            // Register hover provider for all target languages
+            context.subscriptions.push(
+                vscode.languages.registerHoverProvider(languageSelector, hoverProvider)
+            );
         }
         if (hoverProvider)
             hoverProvider.enable = enable;
@@ -91,7 +116,10 @@ export function activate(context: vscode.ExtensionContext) {
 
         if (!signatureHelpProvider && enable) {
             signatureHelpProvider = new PLSQLSignatureProvider();
-            context.subscriptions.push(vscode.languages.registerSignatureHelpProvider('plsql', signatureHelpProvider, '(', ','));
+            // Register signature help provider for all target languages
+            context.subscriptions.push(
+                vscode.languages.registerSignatureHelpProvider(languageSelector, signatureHelpProvider, '(', ',')
+            );
         }
         if (signatureHelpProvider)
             signatureHelpProvider.enable = enable;
